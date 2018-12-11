@@ -55,7 +55,7 @@ public class ProtostuffHttpMessageConverterTest {
                         new QueryExceptionType("this is a test exception", "Exception with no cause caught", null));
         
         assertTrue(actual.getHasResults());
-        assertEquals(42, actual.getOperationTimeMS());
+        assertTrue(actual.getOperationTimeMS() >= 0);
         assertEquals(expectedMessages, actual.getMessages());
         assertEquals(expectedExceptions, actual.getExceptions());
     }
@@ -68,7 +68,7 @@ public class ProtostuffHttpMessageConverterTest {
         public VoidResponse voidResponse() {
             VoidResponse voidResponse = new VoidResponse();
             voidResponse.setHasResults(true);
-            voidResponse.setOperationTimeMS(42);
+            voidResponse.setOperationTimeMS(-1);
             voidResponse.addMessage("This is a test message");
             voidResponse.addMessage("This is another test message");
             voidResponse.addException(new Exception("this is a test exception"));

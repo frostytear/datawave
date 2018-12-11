@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.AbstractHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
+import org.springframework.lang.NonNull;
 import org.springframework.util.Assert;
 
 import java.io.IOException;
@@ -25,14 +26,14 @@ public class ProtostuffHttpMessageConverter extends AbstractHttpMessageConverter
     public static final MediaType PROTOSTUFF = new MediaType("application", "x-protostuff", DEFAULT_CHARSET);
     public static final String PROTOSTUFF_VALUE = "application/x-protostuff";
     
-    private LinkedBuffer buffer = LinkedBuffer.allocate(4096);
+    private ThreadLocal<LinkedBuffer> buffer = ThreadLocal.withInitial(() -> LinkedBuffer.allocate(4096));
     
     public ProtostuffHttpMessageConverter() {
         setSupportedMediaTypes(Collections.singletonList(PROTOSTUFF));
     }
     
     @Override
-    protected boolean supports(Class<?> clazz) {
+    protected boolean supports(@NonNull Class<?> clazz) {
         return Message.class.isAssignableFrom(clazz);
     }
     
@@ -42,28 +43,29 @@ public class ProtostuffHttpMessageConverter extends AbstractHttpMessageConverter
     }
     
     @Override
-    protected Message<?> readInternal(Class<? extends Message<?>> clazz, HttpInputMessage inputMessage) throws IOException, HttpMessageNotReadableException {
+    protected @NonNull Message<?> readInternal(@NonNull Class<? extends Message<?>> clazz, @NonNull HttpInputMessage inputMessage)
+                    throws IOException, HttpMessageNotReadableException {
         MediaType contentType = inputMessage.getHeaders().getContentType();
         if (contentType == null) {
             contentType = PROTOSTUFF;
         }
         
-        Message<Object> msg = null;
         if (PROTOSTUFF.isCompatibleWith(contentType)) {
             try {
                 // noinspection unchecked
-                msg = (Message<Object>) clazz.newInstance();
-                ProtostuffIOUtil.mergeFrom(inputMessage.getBody(), msg, msg.cachedSchema(), buffer);
+                Message<Object> msg = (Message<Object>) clazz.newInstance();
+                ProtostuffIOUtil.mergeFrom(inputMessage.getBody(), msg, msg.cachedSchema(), buffer.get());
+                return msg;
             } catch (InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
+                throw new HttpMessageNotReadableException("Unable to read protostuff message: " + e.getMessage(), e);
             }
         }
         
-        return msg;
+        throw new UnsupportedOperationException("Reading protostuff messages from media types other than " + PROTOSTUFF + " is not supported.");
     }
     
     @Override
-    protected void writeInternal(Message<?> message, HttpOutputMessage outputMessage) throws IOException, HttpMessageNotWritableException {
+    protected void writeInternal(@NonNull Message<?> message, @NonNull HttpOutputMessage outputMessage) throws IOException, HttpMessageNotWritableException {
         MediaType contentType = outputMessage.getHeaders().getContentType();
         if (contentType == null) {
             contentType = getDefaultContentType(message);
@@ -74,10 +76,10 @@ public class ProtostuffHttpMessageConverter extends AbstractHttpMessageConverter
             @SuppressWarnings("unchecked")
             Schema<Object> schema = (Schema<Object>) message.cachedSchema();
             if (PROTOSTUFF.isCompatibleWith(contentType)) {
-                ProtostuffIOUtil.writeTo(outputMessage.getBody(), message, schema, buffer);
+                ProtostuffIOUtil.writeTo(outputMessage.getBody(), message, schema, buffer.get());
             }
         } finally {
-            buffer.clear();
+            buffer.get().clear();
         }
     }
 }

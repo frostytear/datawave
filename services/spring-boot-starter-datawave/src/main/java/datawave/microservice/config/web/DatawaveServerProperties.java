@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
+import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
@@ -13,6 +14,11 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static datawave.microservice.authorization.preauth.ProxiedEntityX509Filter.ENTITIES_HEADER;
+import static datawave.microservice.authorization.preauth.ProxiedEntityX509Filter.ISSUERS_HEADER;
+import static datawave.microservice.authorization.preauth.ProxiedEntityX509Filter.ISSUER_DN_HEADER;
+import static datawave.microservice.authorization.preauth.ProxiedEntityX509Filter.SUBJECT_DN_HEADER;
 
 @Validated
 @EnableConfigurationProperties(DatawaveServerProperties.class)
@@ -57,8 +63,8 @@ public class DatawaveServerProperties {
         private String[] allowedMethods = new String[] {"HEAD", "DELETE", "GET", "POST", "PUT", "OPTIONS"};
         private boolean allowCredentials = true;
         @NotEmpty
-        private String[] allowedHeaders = new String[] {"X-SSL-clientcert-subject", "X-SSL-clientcert-issuer", "X-ProxiedEntitiesChain",
-                "X-ProxiedIssuersChain", "Accept", "Accept-Encoding"};
+        private String[] allowedHeaders = new String[] {SUBJECT_DN_HEADER, ISSUER_DN_HEADER, ENTITIES_HEADER, ISSUERS_HEADER, HttpHeaders.ACCEPT,
+                HttpHeaders.ACCEPT_ENCODING};
         @Positive
         private long maxAge = TimeUnit.DAYS.toSeconds(10);
         
