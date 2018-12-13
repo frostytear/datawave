@@ -1,5 +1,6 @@
 package datawave.microservice.dictionary;
 
+import datawave.microservice.dictionary.config.DataDictionaryProperties;
 import datawave.webservice.query.exception.NoResultsQueryException;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.result.VoidResponse;
@@ -16,7 +17,13 @@ import static datawave.microservice.http.converter.protostuff.ProtostuffHttpMess
 @RestController
 @RequestMapping(path = "/v1", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE, PROTOSTUFF_VALUE})
 public class DataDictionaryOperations {
-    
+
+    private final DataDictionaryProperties dataDictionaryConfiguration;
+
+    public DataDictionaryOperations(DataDictionaryProperties dataDictionaryConfiguration) {
+        this.dataDictionaryConfiguration = dataDictionaryConfiguration;
+    }
+
     @ResponseBody
     @RequestMapping(path = "/void")
     public VoidResponse testVoidResponse(@RequestParam boolean fail) throws QueryException {

@@ -1,4 +1,4 @@
-package datawave.webservice.datadictionary;
+package datawave.microservice.dictionary.data;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -11,17 +11,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 
-import javax.inject.Inject;
-
-import datawave.configuration.spring.SpringBean;
 import datawave.data.ColumnFamilyConstants;
-import datawave.marking.MarkingFunctions;
-import datawave.query.model.QueryModel;
-import datawave.query.util.MetadataEntry;
-import datawave.query.util.MetadataHelperWithDescriptions;
-import datawave.security.util.ScannerHelper;
-import datawave.util.time.DateHelper;
-import datawave.webservice.query.result.event.ResponseObjectFactory;
+import datawave.microservice.dictionary.config.ResponseObjectFactory;
 import datawave.webservice.query.result.metadata.DefaultMetadataField;
 import datawave.webservice.query.result.metadata.MetadataFieldBase;
 import datawave.webservice.results.datadictionary.DescriptionBase;
@@ -36,50 +27,40 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
 
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 /**
  * 
  */
 public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
-    private static final Logger log = Logger.getLogger(DatawaveDataDictionaryImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(DatawaveDataDictionaryImpl.class);
     
     private Map<String,String> normalizerMapping = Maps.newHashMap();
     
-    @Inject
-    @SpringBean(refreshable = true)
-    private MarkingFunctions markingFunctions;
+//    private MarkingFunctions markingFunctions;
     
-    @Inject
-    @SpringBean(name = "allMetadataAuths")
+//    @Inject
+//    @SpringBean(name = "allMetadataAuths")
     private Set<Authorizations> allMetadataAuths;
-    
-    @Inject
-    private ResponseObjectFactory responseObjectFactory;
-    
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#getNormalizerMapping()
-     */
+
+    private final ResponseObjectFactory responseObjectFactory;
+
+    public DatawaveDataDictionaryImpl(ResponseObjectFactory responseObjectFactory) {
+        this.responseObjectFactory = responseObjectFactory;
+    }
+
     @Override
     public Map<String,String> getNormalizerMapping() {
         return normalizerMapping;
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#setNormalizerMapping(java.util.Map)
-     */
     @Override
     public void setNormalizerMapping(Map<String,String> normalizerMapping) {
         this.normalizerMapping = normalizerMapping;
@@ -87,29 +68,26 @@ public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
     
     /*
      * (non-Javadoc)
-     * 
+     *
      * Note: dataTypeFilters can be empty, which means all the fields will be returned
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#getFields(java.lang.String, java.lang.String, java.lang.String,
-     * Java.util.Collection<java.lang.String>, org.apache.accumulo.core.client.Connector, accumulo.core.security.Authorizations, int)
      */
     @Override
     public Collection<MetadataFieldBase> getFields(String modelName, String modelTableName, String metadataTableName, Collection<String> dataTypeFilters,
                     Connector connector, Set<Authorizations> auths, int numThreads) throws Exception {
         // Get a MetadataHelper
-        MetadataHelperWithDescriptions metadataHelper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator()
-                        .next(), auths);
-        // So we can get a QueryModel
-        QueryModel queryModel = metadataHelper.getQueryModel(modelTableName, modelName, metadataHelper.getIndexOnlyFields(null));
+//        MetadataHelperWithDescriptions metadataHelper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator()
+//                        .next(), auths);
+//        // So we can get a QueryModel
+//        QueryModel queryModel = metadataHelper.getQueryModel(modelTableName, modelName, metadataHelper.getIndexOnlyFields(null));
         
         Map<String,String> reverseMapping = null;
         
         // So we can pull the reverse mapping for this model
-        if (null != queryModel) {
-            reverseMapping = queryModel.getReverseQueryMapping();
-        } else {
+//        if (null != queryModel) {
+//            reverseMapping = queryModel.getReverseQueryMapping();
+//        } else {
             reverseMapping = Collections.emptyMap();
-        }
+//        }
         
         // Fetch the results from Accumulo
         BatchScanner bs = fetchResults(connector, metadataTableName, auths, numThreads);
@@ -193,7 +171,7 @@ public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
                         } else if (ColumnFamilyConstants.COLF_DESC.equals(holder)) {
                             DescriptionBase<?> desc = this.responseObjectFactory.getDescription();
                             desc.setDescription(value.toString());
-                            desc.setMarkings(getMarkings(key));
+//                            desc.setMarkings(getMarkings(key));
                             field.getDescriptions().add(desc);
                         } else if (ColumnFamilyConstants.COLF_T.equals(holder)) {
                             field.addType(translate(cq.substring(nullPos + 1)));
@@ -217,8 +195,8 @@ public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
                 }
             } catch (IOException e) {
                 throw new IllegalStateException("Unable to decode row " + entry.getKey());
-            } catch (MarkingFunctions.Exception e) {
-                throw new IllegalStateException("Unable to decode visibility " + entry.getKey(), e);
+//            } catch (MarkingFunctions.Exception e) {
+//                throw new IllegalStateException("Unable to decode visibility " + entry.getKey(), e);
             }
         }
         
@@ -267,12 +245,6 @@ public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
         return "Unknown";
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#setDescription(org.apache.accumulo.core.client.Connector, java.lang.String, java.util.Set,
-     * java.lang.String, java.lang.String, datawave.webservice.datadictionary.FieldDescription)
-     */
     @Override
     public void setDescription(Connector connector, String metadataTableName, Set<Authorizations> auths, String modelName, String modelTableName,
                     DictionaryFieldBase description) throws Exception {
@@ -280,172 +252,138 @@ public class DatawaveDataDictionaryImpl implements DatawaveDataDictionary {
                         description.getDescriptions());
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#setDescription(org.apache.accumulo.core.client.Connector, java.lang.String, java.util.Set,
-     * java.lang.String, java.lang.String, java.lang.String, java.lang.String, datawave.webservice.results.datadictionary.Description)
-     */
     @Override
     public void setDescription(Connector connector, String metadataTableName, Set<Authorizations> auths, String modelName, String modelTable, String fieldName,
                     String datatype, DescriptionBase desc) throws Exception {
         setDescription(connector, metadataTableName, auths, modelName, modelTable, fieldName, datatype, Collections.singleton(desc));
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#setDescription(org.apache.accumulo.core.client.Connector, java.lang.String, java.util.Set,
-     * java.lang.String, java.lang.String, java.lang.String)
-     */
     @Override
     public void setDescription(Connector connector, String metadataTableName, Set<Authorizations> auths, String modelName, String modelTable, String fieldName,
                     String datatype, Set<DescriptionBase> descs) throws Exception {
-        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
-                        auths);
-        
-        QueryModel model = helper.getQueryModel(modelTable, modelName);
-        Map<String,String> mapping = reverseReverseMapping(model);
-        String alias = mapping.get(fieldName);
-        
-        if (null != alias) {
-            fieldName = alias;
-        }
-        
-        // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
-        MetadataEntry mentry = new MetadataEntry(fieldName, datatype);
-        
-        helper.setDescriptions(mentry, descs);
+//        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
+//                        auths);
+//
+//        QueryModel model = helper.getQueryModel(modelTable, modelName);
+//        Map<String,String> mapping = reverseReverseMapping(model);
+//        String alias = mapping.get(fieldName);
+//
+//        if (null != alias) {
+//            fieldName = alias;
+//        }
+//
+//        // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
+//        MetadataEntry mentry = new MetadataEntry(fieldName, datatype);
+//
+//        helper.setDescriptions(mentry, descs);
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#getDescriptions(org.apache.accumulo.core.client.Connector, java.lang.String,
-     * java.util.Set, int)
-     */
     @Override
     public Multimap<Entry<String,String>,DescriptionBase> getDescriptions(Connector connector, String metadataTableName, Set<Authorizations> auths,
                     String modelName, String modelTable) throws Exception {
-        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
-                        auths);
-        QueryModel model = helper.getQueryModel(modelTable, modelName);
-        Map<String,String> mapping = model.getReverseQueryMapping();
-        
-        Multimap<MetadataEntry,DescriptionBase> descriptions = helper.getDescriptions((Set<String>) null);
-        Multimap<Entry<String,String>,DescriptionBase> tformDescriptions = HashMultimap.create();
-        
-        for (Entry<MetadataEntry,DescriptionBase> entry : descriptions.entries()) {
-            MetadataEntry mentry = entry.getKey();
-            
-            String alias = mapping.get(mentry.getFieldName());
-            
-            if (null == alias) {
-                // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
-                tformDescriptions.put(entry.getKey().toEntry(), entry.getValue());
-            } else {
-                tformDescriptions.put(Maps.immutableEntry(alias, mentry.getDatatype()), entry.getValue());
-            }
-        }
-        
-        return tformDescriptions;
+        return null;
+//        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
+//                        auths);
+//        QueryModel model = helper.getQueryModel(modelTable, modelName);
+//        Map<String,String> mapping = model.getReverseQueryMapping();
+//
+//        Multimap<MetadataEntry,DescriptionBase> descriptions = helper.getDescriptions((Set<String>) null);
+//        Multimap<Entry<String,String>,DescriptionBase> tformDescriptions = HashMultimap.create();
+//
+//        for (Entry<MetadataEntry,DescriptionBase> entry : descriptions.entries()) {
+//            MetadataEntry mentry = entry.getKey();
+//
+//            String alias = mapping.get(mentry.getFieldName());
+//
+//            if (null == alias) {
+//                // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
+//                tformDescriptions.put(entry.getKey().toEntry(), entry.getValue());
+//            } else {
+//                tformDescriptions.put(Maps.immutableEntry(alias, mentry.getDatatype()), entry.getValue());
+//            }
+//        }
+//
+//        return tformDescriptions;
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#getDescriptions(org.apache.accumulo.core.client.Connector, java.lang.String,
-     * java.util.Set, int, java.lang.String)
-     */
     @Override
     public Multimap<Entry<String,String>,DescriptionBase> getDescriptions(Connector connector, String metadataTableName, Set<Authorizations> auths,
                     String modelName, String modelTable, String datatype) throws Exception {
-        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
-                        auths);
-        QueryModel model = helper.getQueryModel(modelTable, modelName);
-        Map<String,String> mapping = model.getReverseQueryMapping();
-        
-        Multimap<MetadataEntry,DescriptionBase> descriptions = helper.getDescriptions(datatype);
-        Multimap<Entry<String,String>,DescriptionBase> tformDescriptions = HashMultimap.create();
-        
-        for (Entry<MetadataEntry,DescriptionBase> entry : descriptions.entries()) {
-            MetadataEntry mentry = entry.getKey();
-            
-            String alias = mapping.get(mentry.getFieldName());
-            
-            if (null == alias) {
-                // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
-                tformDescriptions.put(entry.getKey().toEntry(), entry.getValue());
-            } else {
-                tformDescriptions.put(Maps.immutableEntry(alias, mentry.getDatatype()), entry.getValue());
-            }
-        }
-        
-        return tformDescriptions;
+        return null;
+//        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
+//                        auths);
+//        QueryModel model = helper.getQueryModel(modelTable, modelName);
+//        Map<String,String> mapping = model.getReverseQueryMapping();
+//
+//        Multimap<MetadataEntry,DescriptionBase> descriptions = helper.getDescriptions(datatype);
+//        Multimap<Entry<String,String>,DescriptionBase> tformDescriptions = HashMultimap.create();
+//
+//        for (Entry<MetadataEntry,DescriptionBase> entry : descriptions.entries()) {
+//            MetadataEntry mentry = entry.getKey();
+//
+//            String alias = mapping.get(mentry.getFieldName());
+//
+//            if (null == alias) {
+//                // TODO The query model is effectively busted because it doesn't uniquely reference field+datatype
+//                tformDescriptions.put(entry.getKey().toEntry(), entry.getValue());
+//            } else {
+//                tformDescriptions.put(Maps.immutableEntry(alias, mentry.getDatatype()), entry.getValue());
+//            }
+//        }
+//
+//        return tformDescriptions;
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#getDescription(org.apache.accumulo.core.client.Connector, java.lang.String, java.util.Set,
-     * int, java.lang.String, java.lang.String)
-     */
     @Override
     public Set<? extends DescriptionBase> getDescriptions(Connector connector, String metadataTableName, Set<Authorizations> auths, String modelName,
                     String modelTable, String fieldName, String datatype) throws Exception {
-        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
-                        auths);
-        QueryModel model = helper.getQueryModel(modelTable, modelName);
-        Map<String,String> mapping = reverseReverseMapping(model);
-        
-        String alias = mapping.get(fieldName);
-        
-        if (null == alias) {
-            return helper.getDescriptions(fieldName, datatype);
-        } else {
-            return helper.getDescriptions(alias, datatype);
-        }
+        return null;
+//        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
+//                        auths);
+//        QueryModel model = helper.getQueryModel(modelTable, modelName);
+//        Map<String,String> mapping = reverseReverseMapping(model);
+//
+//        String alias = mapping.get(fieldName);
+//
+//        if (null == alias) {
+//            return helper.getDescriptions(fieldName, datatype);
+//        } else {
+//            return helper.getDescriptions(alias, datatype);
+//        }
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see datawave.webservice.datadictionary.DatawaveDataDictionary#deleteDescription(org.apache.accumulo.core.client.Connector, java.lang.String,
-     * java.util.Set, java.lang.String, java.lang.String)
-     */
     @Override
     public void deleteDescription(Connector connector, String metadataTableName, Set<Authorizations> auths, String modelName, String modelTable,
                     String fieldName, String datatype, DescriptionBase desc) throws Exception {
-        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
-                        auths);
-        QueryModel model = helper.getQueryModel(modelTable, modelName);
-        Map<String,String> mapping = reverseReverseMapping(model);
-        
-        String alias = mapping.get(fieldName);
-        
-        if (null == alias) {
-            helper.removeDescription(new MetadataEntry(fieldName, datatype), desc);
-        } else {
-            helper.removeDescription(new MetadataEntry(alias, datatype), desc);
-        }
-        
+//        MetadataHelperWithDescriptions helper = MetadataHelperWithDescriptions.getInstance(connector, metadataTableName, allMetadataAuths.iterator().next(),
+//                        auths);
+//        QueryModel model = helper.getQueryModel(modelTable, modelName);
+//        Map<String,String> mapping = reverseReverseMapping(model);
+//
+//        String alias = mapping.get(fieldName);
+//
+//        if (null == alias) {
+//            helper.removeDescription(new MetadataEntry(fieldName, datatype), desc);
+//        } else {
+//            helper.removeDescription(new MetadataEntry(alias, datatype), desc);
+//        }
     }
     
-    private Map<String,String> reverseReverseMapping(QueryModel model) {
-        Map<String,String> reverseMapping = model.getReverseQueryMapping();
-        Map<String,String> reversed = Maps.newHashMap();
-        
-        for (Entry<String,String> entry : reverseMapping.entrySet()) {
-            reversed.put(entry.getValue(), entry.getKey());
-        }
-        return reversed;
-    }
-    
-    private Map<String,String> getMarkings(Key k) throws MarkingFunctions.Exception {
-        return getMarkings(k.getColumnVisibilityParsed());
-    }
-    
-    private Map<String,String> getMarkings(ColumnVisibility visibility) throws MarkingFunctions.Exception {
-        return markingFunctions.translateFromColumnVisibility(visibility);
-    }
+//    private Map<String,String> reverseReverseMapping(QueryModel model) {
+//        Map<String,String> reverseMapping = model.getReverseQueryMapping();
+//        Map<String,String> reversed = Maps.newHashMap();
+//
+//        for (Entry<String,String> entry : reverseMapping.entrySet()) {
+//            reversed.put(entry.getValue(), entry.getKey());
+//        }
+//        return reversed;
+//    }
+//
+//    private Map<String,String> getMarkings(Key k) throws MarkingFunctions.Exception {
+//        return getMarkings(k.getColumnVisibilityParsed());
+//    }
+//
+//    private Map<String,String> getMarkings(ColumnVisibility visibility) throws MarkingFunctions.Exception {
+//        return markingFunctions.translateFromColumnVisibility(visibility);
+//    }
 }

@@ -1,4 +1,4 @@
-package datawave.webservice.datadictionary;
+package datawave.microservice.dictionary.data;
 
 import com.google.common.collect.Multimap;
 import datawave.webservice.query.result.metadata.MetadataFieldBase;
@@ -12,9 +12,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-/**
- * 
- */
 public interface DatawaveDataDictionary {
     Collection<MetadataFieldBase> getFields(String modelName, String modelTableName, String metadataTableName, Collection<String> dataTypeFilters,
                     Connector connector, Set<Authorizations> auths, int numThreads) throws Exception;

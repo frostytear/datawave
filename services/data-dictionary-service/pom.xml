@@ -38,6 +38,11 @@
             <groupId>gov.nsa.datawave.microservice</groupId>
             <artifactId>spring-boot-starter-datawave</artifactId>
         </dependency>
+        <dependency>
+            <groupId>gov.nsa.datawave.microservice</groupId>
+            <artifactId>audit-api</artifactId>
+            <version>1.4</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>

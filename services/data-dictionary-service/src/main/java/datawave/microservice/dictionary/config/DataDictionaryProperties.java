@@ -1,8 +1,13 @@
-package datawave.webservice.datadictionary;
+package datawave.microservice.dictionary.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 import java.util.Map;
 
-public class DataDictionaryConfiguration {
+@EnableConfigurationProperties(DataDictionaryProperties.class)
+@ConfigurationProperties(prefix = "datawave.data.dictionary")
+public class DataDictionaryProperties {
     
     private String modelName;
     private String modelTableName;
