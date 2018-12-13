@@ -24,6 +24,7 @@
         <module>..</module>
         <module>../service-parent</module>
         <module>../metrics-reporter</module>
+        <module>../accumulo-utils</module>
         <module>../authorization-api</module>
         <module>../audit-api</module>
         <module>../hazelcast-common</module>
