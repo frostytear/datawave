@@ -15,7 +15,10 @@
         </license>
     </licenses>
     <modules>
+        <!-- TODO: Remove this when the first version of accumulo-utils is released -->
         <module>services/accumulo-utils</module>
+        <!-- TODO: Remove this when the first version of base-rest-responses is released -->
+        <module>services/base-rest-responses</module>
         <module>common-test</module>
         <module>web-services</module>
         <module>warehouse</module>
