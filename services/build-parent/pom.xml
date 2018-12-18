@@ -26,7 +26,6 @@
         <!-- Temporarily removed until the first version is released and this module is removed from the parent pom. -->
         <!--<module>../accumulo-utils</module>-->
         <module>../metrics-reporter</module>
-        <module>../accumulo-utils</module>
         <module>../authorization-api</module>
         <module>../audit-api</module>
         <module>../hazelcast-common</module>
