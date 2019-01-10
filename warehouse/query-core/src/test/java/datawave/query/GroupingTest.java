@@ -1,6 +1,7 @@
 package datawave.query;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import datawave.configuration.spring.SpringBean;
 import datawave.helpers.PrintUtility;
 import datawave.ingest.data.TypeRegistry;
@@ -30,7 +31,6 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -48,6 +48,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import static datawave.query.QueryTestTableHelper.*;
+import static datawave.query.RebuildingScannerTestHelper.TEARDOWN.*;
 
 /**
  * Applies grouping to queries
@@ -57,55 +58,51 @@ public abstract class GroupingTest {
     
     private static final Logger log = Logger.getLogger(GroupingTest.class);
     
+    private static Authorizations auths = new Authorizations("ALL");
+    
+    // @formatter:off
+    private static final List<RebuildingScannerTestHelper.TEARDOWN> TEARDOWNS = Lists.newArrayList(
+            NEVER,
+            ALWAYS,
+            ALWAYS_SANS_CONSISTENCY,
+            RANDOM,
+            RANDOM_SANS_CONSISTENCY,
+            EVERY_OTHER,
+            EVERY_OTHER_SANS_CONSISTENCY
+    );
+    // @formatter:on
+    
     @RunWith(Arquillian.class)
     public static class ShardRange extends GroupingTest {
-        protected static Connector connector = null;
-        private static Authorizations auths = new Authorizations("ALL");
         
-        @BeforeClass
-        public static void setUp() throws Exception {
-            
-            QueryTestTableHelper qtth = new QueryTestTableHelper(GroupingTest.ShardRange.class.toString(), log, RebuildingScannerTestHelper.TEARDOWN.NEVER);
-            connector = qtth.connector;
-            
+        @Override
+        protected void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms,
+                        RebuildingScannerTestHelper.TEARDOWN teardown) throws Exception {
+            QueryTestTableHelper qtth = new QueryTestTableHelper(ShardRange.class.getName(), log, teardown);
+            Connector connector = qtth.connector;
             WiseGuysIngest.writeItAll(connector, WiseGuysIngest.WhatKindaRange.SHARD);
             PrintUtility.printTable(connector, auths, SHARD_TABLE_NAME);
             PrintUtility.printTable(connector, auths, SHARD_INDEX_TABLE_NAME);
             PrintUtility.printTable(connector, auths, MODEL_TABLE_NAME);
-        }
-        
-        @Override
-        protected void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms)
-                        throws Exception {
             super.runTestQueryWithGrouping(expected, querystr, startDate, endDate, extraParms, connector);
         }
     }
     
     @RunWith(Arquillian.class)
     public static class DocumentRange extends GroupingTest {
-        protected static Connector connector = null;
         
-        @BeforeClass
-        public static void setUp() throws Exception {
-            
-            QueryTestTableHelper qtth = new QueryTestTableHelper(DocumentRange.class.toString(), log, RebuildingScannerTestHelper.TEARDOWN.NEVER);
-            connector = qtth.connector;
-            
+        @Override
+        protected void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms,
+                        RebuildingScannerTestHelper.TEARDOWN teardown) throws Exception {
+            QueryTestTableHelper qtth = new QueryTestTableHelper(DocumentRange.class.toString(), log, teardown);
+            Connector connector = qtth.connector;
             WiseGuysIngest.writeItAll(connector, WiseGuysIngest.WhatKindaRange.DOCUMENT);
-            Authorizations auths = new Authorizations("ALL");
             PrintUtility.printTable(connector, auths, SHARD_TABLE_NAME);
             PrintUtility.printTable(connector, auths, SHARD_INDEX_TABLE_NAME);
             PrintUtility.printTable(connector, auths, MODEL_TABLE_NAME);
-        }
-        
-        @Override
-        protected void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms)
-                        throws Exception {
             super.runTestQueryWithGrouping(expected, querystr, startDate, endDate, extraParms, connector);
         }
     }
-    
-    protected Authorizations auths = new Authorizations("ALL");
     
     protected Set<Authorizations> authSet = Collections.singleton(auths);
     
@@ -146,8 +143,8 @@ public abstract class GroupingTest {
         deserializer = new KryoDocumentDeserializer();
     }
     
-    protected abstract void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms)
-                    throws Exception;
+    protected abstract void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate,
+                    Map<String,String> extraParms, RebuildingScannerTestHelper.TEARDOWN teardown) throws Exception;
     
     protected void runTestQueryWithGrouping(Map<String,Integer> expected, String querystr, Date startDate, Date endDate, Map<String,String> extraParms,
                     Connector connector) throws Exception {
@@ -247,7 +244,9 @@ public abstract class GroupingTest {
         
         extraParameters.put("group.fields", "AG,GEN");
         
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
     }
     
     @Test
@@ -274,7 +273,9 @@ public abstract class GroupingTest {
         // @formatter:on
         extraParameters.put("group.fields", "AG");
         
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
     }
     
     @Test
@@ -291,7 +292,9 @@ public abstract class GroupingTest {
         
         extraParameters.put("group.fields", "GEN");
         
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
     }
     
     @Test
@@ -308,7 +311,9 @@ public abstract class GroupingTest {
         
         extraParameters.put("group.fields", "GEN");
         
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
     }
     
     @Test
@@ -334,7 +339,9 @@ public abstract class GroupingTest {
                 .build();
         // @formatter:on
         
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
     }
     
     @Test
@@ -360,8 +367,9 @@ public abstract class GroupingTest {
                 .build();
         // @formatter:on
         logic.setParser(new LuceneToJexlQueryParser());
-        runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters);
+        for (RebuildingScannerTestHelper.TEARDOWN teardown : TEARDOWNS) {
+            runTestQueryWithGrouping(expectedMap, queryString, startDate, endDate, extraParameters, teardown);
+        }
         logic.setParser(new JexlControlledQueryParser());
     }
-    
 }
